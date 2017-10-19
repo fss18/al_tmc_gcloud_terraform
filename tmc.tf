@@ -39,8 +39,10 @@ resource "google_compute_instance" "tmc" {
 
   tags = ["${var.tag_name}"]
 
-  disk {
-    image = "projects/${var.target_project}/global/images/${var.image_name}"
+  boot_disk {
+    initialize_params {
+      image = "projects/${var.target_project}/global/images/${var.image_name}"
+    }    
   }
 
   network_interface {
@@ -59,10 +61,10 @@ resource "google_compute_firewall" "inbound-22" {
 
   allow {
     protocol = "tcp"
-    ports    = ["22"]
+    ports    = ["22", "4849"]
   }
 
-  source_ranges = ["208.71.209.32/27", "204.110.218.96/27", "204.110.219.96/27"]  
+  source_ranges = ["208.71.209.32/27", "204.110.218.96/27", "204.110.219.96/27", "185.54.124.0/24"]  
   target_tags   = ["${var.tag_name}"]
 }
 
@@ -85,10 +87,36 @@ resource "google_compute_firewall" "inbound-agent" {
 
   allow {
     protocol = "tcp"
-    ports    = ["7777"]
+    ports    = ["7777", "443"]
   }
 
   source_ranges = ["${var.monitoring_CIDR}"]
+  target_tags   = ["${var.tag_name}"]
+}
+
+resource "google_compute_firewall" "egress-alertlogic" {
+  name    = "${var.instance_name}-egress-alertlogic"
+  network = "${var.network_name}"
+  direction = "EGRESS"
+  allow {
+    protocol = "tcp"
+    ports    = ["4138", "443"]
+  }
+
+  destination_ranges = ["208.71.209.32/27", "204.110.218.96/27", "204.110.219.96/27", "185.54.124.0/24"]  
+  target_tags   = ["${var.tag_name}"]
+}
+
+resource "google_compute_firewall" "egress-dns" {
+  name    = "${var.instance_name}-egress-dns"
+  network = "${var.network_name}"
+  direction = "EGRESS"
+  allow {
+    protocol = "tcp"
+    ports    = ["4138", "443"]
+  }
+
+  destination_ranges = ["8.8.8.8/32", "8.8.4.4/32"]  
   target_tags   = ["${var.tag_name}"]
 }
 
